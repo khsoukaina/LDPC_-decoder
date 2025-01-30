@@ -1,0 +1,27 @@
+clc;
+clear;
+close all;
+
+% Définition de la matrice de parité H (3x6)
+H = [1 0 1 1 0 0;
+     0 1 0 1 1 0;
+     0 0 1 0 1 1];
+
+% Code reçu avec erreurs
+c_recu = [1; 0; 1; 1; 0; 1]; 
+
+% Probabilités d'erreur sur chaque bit (ex: sortie d'un détecteur soft)
+p = [0.9; 0.1; 0.8; 0.7; 0.3; 0.6];
+
+% Nombre maximal d'itérations
+MAX_ITER = 10;
+
+% Exécution du décodeur
+c_corrige = SOFT_DECODER(c_recu, H, p, MAX_ITER);
+
+% Affichage des résultats
+disp('Code reçu (bruité) :');
+disp(c_recu');
+
+disp('Code corrigé :');
+disp(c_corrige');
