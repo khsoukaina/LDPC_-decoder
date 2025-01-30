@@ -1,0 +1,102 @@
+function c_cor = SOFT_DECODER(c, H, p, MAX_ITER)
+    % Vérification du nombre d'arguments
+    if nargin < 4
+        error('SOFT_DECODER_GROUPE2 requires four input arguments: c, H, p, and MAX_ITER.');
+    end
+
+    % Initialisation des variables
+    [M, N] = size(H);
+    
+    if length(c) ~= N || length(p) ~= N
+        error('Les dimensions de c et p doivent correspondre au nombre de colonnes de H.');
+    end
+    
+    Q = H .* transpose(p);
+    R = zeros(M, N);
+    iter = 1;
+    c_cor = c;
+
+    while iter <= MAX_ITER
+        % Vérification du syndrome (si le code est valide, on arrête)
+        syndrome = mod(c_cor' * H', 2);
+        if all(syndrome == 0)
+            break;
+        end
+
+        % Mise à jour de la matrice R (messages de check nodes vers variable nodes)
+        for i = 1:M
+            for j = 1:N
+                if H(i, j) == 1
+                    R(i, j) = check_to_variable(i, j, Q, H);
+                end
+            end
+        end
+        
+        % Mise à jour de la matrice Q (messages de variable nodes vers check nodes)
+        for i = 1:M
+            for j = 1:N
+                if H(i, j) == 1
+                    Q(i, j) = variable_to_check(i, j, R, p, H);
+                end
+            end
+        end
+
+        % Estimation du code corrigé
+        for j = 1:N
+            c_cor(j) = update_variable(j, R, p);
+        end
+
+        iter = iter + 1;
+    end
+end
+
+% Fonction pour calculer le message de check node vers variable node
+function r = check_to_variable(i, j, Q, H)
+    [~, N] = size(H);
+    prod = 1;
+
+    for q = 1:N
+        if q ~= j && H(i, q) == 1
+            prod = prod * (1 - 2 * Q(i, q));
+        end
+    end
+
+    r = 1 - (1/2 + 1/2 * prod);
+end
+
+% Fonction pour calculer le message de variable node vers check node
+function q = variable_to_check(i, j, R, p, H)
+    [M, ~] = size(H);
+    q_proba_0 = 1 - p(j);
+    q_proba_1 = p(j);
+
+    for r = 1:M
+        if R(r, j) ~= 0 && H(r, j) == 1 && r ~= i
+            q_proba_0 = q_proba_0 * (1 - R(r, j));
+            q_proba_1 = q_proba_1 * R(r, j);
+        end
+    end
+
+    k = 1 / (q_proba_0 + q_proba_1);
+    q = k * q_proba_1;
+end
+
+% Fonction pour mettre à jour le bit corrigé
+function c_est = update_variable(j, R, p)
+    [M, ~] = size(R);
+    q_proba_0 = 1 - p(j);
+    q_proba_1 = p(j);
+
+    for r = 1:M
+        if R(r, j) ~= 0
+            q_proba_0 = q_proba_0 * (1 - R(r, j));
+            q_proba_1 = q_proba_1 * R(r, j);
+        end
+    end
+
+    if q_proba_1 > q_proba_0
+        c_est = 1;
+    else
+        c_est = 0;
+    end
+end
